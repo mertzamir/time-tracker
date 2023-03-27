@@ -1,0 +1,35 @@
+module TimeTracker where
+
+import DA.Optional
+
+template Task
+  with
+    owner: Party
+    description: Text
+    startTime: Time
+    endTime: Time
+    projectId: Text
+  where
+    signatory owner
+
+    ensure startTime < endTime -- sanity check during record creation
+
+    key (owner, projectId, startTime): (Party, Text, Time)
+    maintainer key._1
+
+    choice UpdateTask: ContractId Task with
+        newDescription: Optional Text
+        newStartTime: Optional Time
+        newEndTime: Optional Time
+        newProjectId: Optional Text
+      controller owner
+      do
+        assertMsg "Start time can't be bigger than end time" (newStartTime < newEndTime)
+        assertMsg "Updated description should be different than the previous one" (newDescription /= Some description)
+        assertMsg "Updated project ID can't be the same as previous one" (newProjectId /= Some projectId)
+        create this with description = fromOptional description newDescription, startTime = fromOptional startTime newStartTime, endTime = fromOptional endTime newEndTime, projectId = fromOptional projectId newProjectId
+    
+    nonconsuming choice DeleteTask: ()
+      controller owner
+      do
+        archive self

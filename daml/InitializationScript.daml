@@ -1,0 +1,47 @@
+module InitializationScript where
+
+import Daml.Script
+import DA.Time
+import DA.Date
+import TimeTracker
+
+initialize =
+  script do
+    mert <- allocateParty "Mert"
+    bob <- allocateParty "Bob"
+
+    -- Create a record for Mert
+    mertCid <- submit mert do
+      createCmd Task with
+        owner = mert
+        description = "Take Home Test for Digital Asset"
+        startTime = time (date 2023 Mar 27) 11 0 0
+        endTime = time (date 2023 Mar 27) 12 0 0
+        projectId = "1"
+
+    -- Create a record for Bob
+    bobCid <- submit bob do
+      createCmd Task with
+        owner = bob
+        description = "Review Mert's take home test"
+        startTime = time (date 2023 Mar 27) 14 0 0
+        endTime = time (date 2023 Mar 27) 14 30 0
+        projectId = "2"
+
+    -- Update Mert's initial record
+    let updatedStart = time (date 2023 May 27) 10 0 0
+    let updatedEnd = time (date 2023 May 27) 11 0 0
+    newMertCid <- submit mert do
+      exerciseCmd mertCid $ UpdateTask with 
+        newDescription = Some "New description"
+        newStartTime = Some updatedStart
+        newEndTime = Some updatedEnd
+        newProjectId = Some "new ID"
+
+    -- Delete Bob's initial record
+    submit bob do exerciseCmd bobCid $ DeleteTask
+    
+
+
+     
+     

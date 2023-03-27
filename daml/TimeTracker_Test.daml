@@ -1,0 +1,71 @@
+module TimeTracker_Test where
+
+import Daml.Script
+import DA.Time
+import DA.Date
+import TimeTracker
+
+test =
+  script do
+    mert <- allocateParty "Mert"
+    bob <- allocateParty "Bob"
+
+    -- Init a record for later use
+    mertCid <- submit mert do
+      createCmd Task with
+        owner = mert
+        description = "Some task"
+        startTime = time (date 2023 Mar 27) 11 0 0
+        endTime = time (date 2023 Mar 27) 12 0 0
+        projectId = "1"
+
+    -- Constructor Test (Init a record with invalid start & end times)
+    submitMustFail bob do   
+      createCmd Task with
+        owner = bob
+        description = "Some task"
+        startTime = time (date 2023 Mar 27) 16 0 0
+        endTime = time (date 2023 Mar 27) 14 30 0
+        projectId = "1"
+
+    -- UpdateTask Test (Invalid Start & End Time)
+    let invalidStart = time (date 2023 May 27) 12 0 0
+    let invalidEnd = time (date 2023 May 27) 11 0 0
+    submitMustFail mert do
+      exerciseCmd mertCid $ UpdateTask with
+        newDescription = Some "New description"
+        newStartTime = Some invalidStart
+        newEndTime = Some invalidEnd
+        newProjectId = Some "new ID"
+    
+    -- UpdateTask Test (Invalid Description)
+    let invalidDescription = "Some task"
+    let validStartTime = time (date 2023 Mar 27) 11 0 0
+    let validEndTime = time (date 2023 Mar 27) 12 0 0
+    submitMustFail mert do
+      exerciseCmd mertCid $ UpdateTask with
+        newDescription = Some invalidDescription
+        newStartTime = Some validStartTime
+        newEndTime = Some validEndTime
+        newProjectId = Some "new ID"
+
+    -- UpdateTask Test (Invalid Project ID)
+    let invalidProjectId = "1"
+    submitMustFail mert do
+      exerciseCmd mertCid $ UpdateTask with
+        newDescription = Some "New task"
+        newStartTime = Some validStartTime
+        newEndTime = Some validEndTime
+        newProjectId = Some invalidProjectId
+
+    -- DeleteTask Test
+    submit mert do exerciseCmd mertCid $ DeleteTask
+    mertTask <- do
+      deletedMertTask <- queryContractId mert mertCid
+      case deletedMertTask of
+        None -> debug "DeleteTask_Test: Task is deleted as expected!"
+        Some mertTask -> fail "DeleteTask_Test: Task should've been deleted"
+    return()
+    
+
+    
