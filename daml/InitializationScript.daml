@@ -40,8 +40,4 @@ initialize =
 
     -- Delete Bob's initial record
     submit bob do exerciseCmd bobCid $ DeleteTask
-    
-
-
-     
-     
+ 

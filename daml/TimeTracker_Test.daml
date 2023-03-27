@@ -67,5 +67,3 @@ test =
         Some mertTask -> fail "DeleteTask_Test: Task should've been deleted"
     return()
     
-
-    
