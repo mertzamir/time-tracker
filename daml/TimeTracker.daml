@@ -38,27 +38,24 @@ template Task
 template TaskSummary
   with
     owner: Party
-    projectId: Text
     tasks: [Task]
   where
     signatory owner
 
-    key (owner, projectId): (Party, Text)
-    maintainer key._1
+    key owner: Party
+    maintainer key
 
     choice AddTask: ContractId TaskSummary with
         taskToAdd: Task
       controller owner
       do
         assertMsg "Task already exists!" (taskToAdd `notElem` tasks)
-        assertMsg "ProjectIDs don't match!" (taskToAdd.projectId == projectId)
         create this with tasks = taskToAdd :: tasks
 
     choice RemoveTask: ContractId TaskSummary with
         taskToRemove: Task
       controller owner
       do
-        assertMsg "ProjectIDs don't match!" (taskToRemove.projectId == projectId)
         assertMsg "Task doesn't exists!" (taskToRemove `elem` tasks)
         let updatedTasks = filter (\t -> t.owner /= taskToRemove.owner || t.projectId /= taskToRemove.projectId || t.startTime /= taskToRemove.startTime) tasks
         create this with tasks = updatedTasks

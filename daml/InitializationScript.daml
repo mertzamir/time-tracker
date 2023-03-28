@@ -75,7 +75,6 @@ initialize =
     mertTSCid <- submit mert do
       createCmd TaskSummary with
         owner = mert
-        projectId = (tasks !! 1).projectId
         tasks = []
 
     -- Add Task records to Mert's TaskSummary
@@ -87,18 +86,23 @@ initialize =
       exerciseCmd mertTsCid2 $ AddTask with
         taskToAdd = (tasks !! 2)
 
-    submitMustFail mert do -- This should fail since it's inserting a Task with a different projectId=2
-      exerciseCmd mertTsCid2 $ AddTask with
+    mertTsCid4 <- submit mert do
+      exerciseCmd mertTsCid3 $ AddTask with
         taskToAdd = (tasks !! 3)
 
-  -- Remove second Task in projectId=1
-    mertTsCid4 <- submit mert do 
-      exerciseCmd mertTsCid3 $ RemoveTask with
-        taskToRemove = (tasks !! 2)
+    submitMustFail mert do -- This should fail since it's trying to add the same Task twice
+      exerciseCmd mertTsCid4 $ AddTask with
+        taskToAdd = (tasks !! 3)
 
-    submitMustFail mert do -- This should fail since it's removing a Task with a non-existent projectId=2
+  -- Remove first Task 
+    let taskToRemove = tasks !! 1
+    mertTsCid4 <- submit mert do 
+      exerciseCmd mertTsCid4 $ RemoveTask with
+        taskToRemove = taskToRemove
+
+    submitMustFail mert do -- This should fail since it's removing a non-existent Task 
       exerciseCmd mertTsCid3 $ RemoveTask with
-        taskToRemove = (tasks !! 3)
+        taskToRemove = taskToRemove
 
     return ()
  
