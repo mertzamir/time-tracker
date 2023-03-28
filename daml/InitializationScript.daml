@@ -4,6 +4,7 @@ import Daml.Script
 import DA.Time
 import DA.Date
 import TimeTracker
+import DA.List
 
 initialize =
   script do
@@ -40,4 +41,64 @@ initialize =
 
     -- Delete Bob's initial record
     submit bob do exerciseCmd bobCid $ DeleteTask
+
+    -- Create TaskSummary Record for Mert and populate it with Tasks
+    -- First create some Task records for Mert
+    mertTask1 <- submit mert do
+      createCmd Task with
+        owner = mert
+        description = "Task-1"
+        startTime = time (date 2023 Mar 27) 11 0 0
+        endTime = time (date 2023 Mar 27) 12 0 0
+        projectId = "1"
+    mertTask2 <- submit mert do
+      createCmd Task with
+        owner = mert
+        description = "Task-2"
+        startTime = time (date 2023 Mar 27) 13 0 0
+        endTime = time (date 2023 Mar 27) 14 0 0
+        projectId = "1"
+    mertTask3 <- submit mert do
+      createCmd Task with
+        owner = mert
+        description = "Task-1"
+        startTime = time (date 2023 Mar 27) 11 0 0
+        endTime = time (date 2023 Mar 27) 12 0 0
+        projectId = "2"
+
+    contracts <- query @Task mert -- fetch Mert's Task contracts
+    let tasks = map snd contracts -- Extract Task instances 
+    debug tasks
+    -- debug (tasks !! 2)
+
+    -- Create TaskSummary Record for Mert for projectId=1
+    mertTSCid <- submit mert do
+      createCmd TaskSummary with
+        owner = mert
+        projectId = (tasks !! 1).projectId
+        tasks = []
+
+    -- Add Task records to Mert's TaskSummary
+    mertTsCid2 <- submit mert do
+      exerciseCmd mertTSCid $ AddTask with
+        taskToAdd = (tasks !! 1)
+    
+    mertTsCid3 <- submit mert do
+      exerciseCmd mertTsCid2 $ AddTask with
+        taskToAdd = (tasks !! 2)
+
+    submitMustFail mert do -- This should fail since it's inserting a Task with a different projectId=2
+      exerciseCmd mertTsCid2 $ AddTask with
+        taskToAdd = (tasks !! 3)
+
+  -- Remove second Task in projectId=1
+    mertTsCid4 <- submit mert do 
+      exerciseCmd mertTsCid3 $ RemoveTask with
+        taskToRemove = (tasks !! 2)
+
+    submitMustFail mert do -- This should fail since it's removing a Task with a non-existent projectId=2
+      exerciseCmd mertTsCid3 $ RemoveTask with
+        taskToRemove = (tasks !! 3)
+
+    return ()
  
